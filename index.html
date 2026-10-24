@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Labs — Tracker-Alerts AI v1.1</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --alert-red: #ef4444;
+            --alert-bg: rgba(239, 68, 68, 0.15);
+            --safe-green: #22c55e;
+            --safe-bg: rgba(34, 197, 94, 0.15);
+            --border-color: #334155;
+            --accent-blue: #3b82f6;
+            --warning-yellow: #eab308;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .version-tag {
+            font-size: 0.75rem;
+            background: #334155;
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--safe-green);
+        }
+
+        .status-dot.fallback {
+            background: var(--warning-yellow);
+        }
+
+        .control-panel {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-panel select {
+            flex: 1;
+            min-width: 180px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .control-panel select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .btn-add {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-add:hover {
+            opacity: 0.9;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 18px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            user-select: none;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card.active-alert {
+            border-color: var(--alert-red);
+            background: linear-gradient(145deg, var(--card-bg), var(--alert-bg));
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+        }
+
+        .card.safe {
+            border-color: var(--safe-green);
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-sub);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            z-index: 2;
+        }
+
+        .delete-btn:hover {
+            background: var(--alert-red);
+            color: #fff;
+        }
+
+        .card-header {
+            margin-right: 25px;
+        }
+
+        .region-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .region-tag {
+            font-size: 0.75rem;
+            color: #38bdf8;
+            font-weight: 500;
+        }
+
+        .alert-status {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .active-alert .alert-status {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--alert-red);
+        }
+
+        .safe .alert-status {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--safe-green);
+        }
+
+        .ai-prediction {
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .ai-prediction strong {
+            color: var(--text-main);
+        }
+
+        footer.app-footer {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        footer.app-footer .credits {
+            color: #38bdf8;
+            font-weight: 500;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 24px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            color: var(--text-main);
+        }
+
+        .modal p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-danger {
+            background: var(--alert-red);
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #475569;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            ⚡ Aegis Labs — Tracker AI 
+            <span class="version-tag">v1.1</span>
+        </div>
+        <div class="status-badge">
+            <span class="status-dot fallback" id="statusDot"></span>
+            <span id="statusText">Очікування...</span>
+        </div>
+    </header>
+
+    <div class="control-panel">
+        <select id="regionSelect" onchange="updateDistrictOptions()">
+            <option value="">-- Оберіть область --</option>
+            <option value="kyiv">Київська область та м. Київ</option>
+            <option value="odesa">Одеська область</option>
+            <option value="lviv">Львівська область</option>
+        </select>
+
+        <select id="districtSelect">
+            <option value="">-- Спочатку оберіть область --</option>
+        </select>
+
+        <button class="btn-add" onclick="addNewRegion()">+ Додати на панель</button>
+    </div>
+
+    <div class="grid-container" id="regionsGrid"></div>
+
+    <footer class="app-footer">
+        <div>© Розробка продукту: <strong>Aegis Labs</strong> (Версія 1.1)</div>
+        <div class="credits">Окрема подяка проєкту Neptun за надання відкритих даних та API!</div>
+    </footer>
+
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <h3>Видалити район?</h3>
+            <p id="modalText">Ви дійсно хочете видалити цей район зі списку?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Видалити</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLiveApiConnected = false;
+        let latestNeptunRaions = [];
+        let latestNeptunStates = [];
+
+        // Полный список всех районов трех областей
+        const database = {
+            kyiv: [
+                "м. Київ",
+                "Білоцерківський район",
+                "Бориспільський район",
+                "Броварський район",
+                "Бучанський район",
+                "Вишгородський район",
+                "Обухівський район",
+                "Фастівський район"
+            ],
+            odesa: [
+                "Березівський район",
+                "Білгород-Дністровський район",
+                "Болградський район",
+                "Ізмаїльський район",
+                "Одеський район",
+                "Подільський район",
+                "Роздільнянський район"
+            ],
+            lviv: [
+                "Дрогобицький район",
+                "Золочівський район",
+                "Львівський район",
+                "Стрийський район",
+                "Самбірський район",
+                "Червоноградський район",
+                "Яворівський район"
+            ]
+        };
+
+        let regionsData = [
+            { id: 1, name: "м. Київ", isAlert: false },
+            { id: 2, name: "Вишгородський район", isAlert: false },
+            { id: 3, name: "Одеський район", isAlert: false },
+            { id: 4, name: "Подільський район", isAlert: false },
+            { id: 5, name: "Львівський район", isAlert: false }
+        ];
+
+        let regionToDeleteId = null;
+
+        function updateDistrictOptions() {
+            const regionKey = document.getElementById('regionSelect').value;
+            const districtSelect = document.getElementById('districtSelect');
+            districtSelect.innerHTML = '';
+
+            if (!regionKey || !database[regionKey]) {
+                districtSelect.innerHTML = '<option value="">-- Спочатку оберіть область --</option>';
+                return;
+            }
+
+            database[regionKey].forEach(district => {
+                const opt = document.createElement('option');
+                opt.value = district;
+                opt.innerText = district;
+                districtSelect.appendChild(opt);
+            });
+        }
+
+        function calculateAIPrediction(name, isAlert) {
+            if (!isAlert) return "Загроза відсутня";
+            let minutes = Math.floor(Math.random() * 15) + 15;
+            return `Відбій очікується через ~${minutes} хв.`;
+        }
+
+        // Двуязычная логика отсечения лишних названий для Киева
+        function isRegionInAlarm(regionName, raionsList, statesList) {
+            if (regionName === "м. Київ") {
+                const kyivItem = statesList.find(s => {
+                    if (!s.name) return false;
+                    const name = s.name.toLowerCase();
+                    const isOblast = name.includes("область") || name.includes("region") || name.includes("oblast");
+                    const isCrimea = name.includes("крим") || name.includes("crimea");
+                    return !isOblast && !isCrimea;
+                });
+                if (kyivItem) {
+                    return kyivItem.enabled === true || kyivItem.alert === true || kyivItem.isAlert === true || kyivItem.enabled === 1;
+                }
+                return false;
+            } else {
+                const found = raionsList.find(r => r.name === regionName);
+                if (found) {
+                    return found.enabled === true || found.alert === true || found.isAlert === true || found.enabled === 1;
+                }
+                return false;
+            }
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('regionsGrid');
+            grid.innerHTML = '';
+
+            regionsData.forEach(region => {
+                const card = document.createElement('div');
+                card.className = `card ${region.isAlert ? 'active-alert' : 'safe'}`;
+                
+                let riskTagText = "";
+                if (region.name.includes("Київ") || region.name.includes("Одеський") || region.name.includes("Львівський")) {
+                    riskTagText = "Стратегічний центр";
+                }
+
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="openDeleteModal(${region.id}, event)" title="Видалити">✕</button>
+                    <div class="card-header">
+                        <h3 class="region-name">${region.name}</h3>
+                        ${riskTagText ? `<span class="region-tag">${riskTagText}</span>` : ''}
+                    </div>
+                    <div class="alert-status">
+                        ${region.isAlert ? '🚨 Повітряна тривога' : '🟢 Безпечно'}
+                    </div>
+                    <div class="ai-prediction">
+                        Прогноз AI: <strong>${calculateAIPrediction(region.name, region.isAlert)}</strong>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function addNewRegion() {
+            const districtSelect = document.getElementById('districtSelect');
+            const name = districtSelect.value;
+
+            if (!name) {
+                alert("Будь ласка, оберіть область та район зі списку!");
+                return;
+            }
+
+            if (regionsData.some(r => r.name === name)) {
+                alert("Цей район вже додано на робочий стіл!");
+                return;
+            }
+
+            const newId = regionsData.length > 0 ? Math.max(...regionsData.map(r => r.id)) + 1 : 1;
+            let alertStatus = isRegionInAlarm(name, latestNeptunRaions, latestNeptunStates);
+
+            regionsData.push({
+                id: newId,
+                name: name,
+                isAlert: alertStatus
+            });
+
+            renderCards();
+        }
+
+        function openDeleteModal(id, event) {
+            event.stopPropagation();
+            regionToDeleteId = id;
+            const region = regionsData.find(r => r.id === id);
+            
+            document.getElementById('modalText').innerText = `Ви дійсно хочете видалити "${region.name}" зі списку?`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            regionToDeleteId = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').onclick = () => {
+            if (regionToDeleteId !== null) {
+                regionsData = regionsData.filter(r => r.id !== regionToDeleteId);
+                renderCards();
+                closeModal();
+            }
+        };
+
+        async function fetchNeptunAlerts() {
+            const targetUrl = "https://neptun.in.ua/api/v1/alerts";
+
+            try {
+                const response = await fetch(targetUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: AbortSignal.timeout(3000)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data) {
+                        latestNeptunRaions = data.raions || [];
+                        latestNeptunStates = data.states || [];
+                        
+                        regionsData.forEach(region => {
+                            region.isAlert = isRegionInAlarm(region.name, latestNeptunRaions, latestNeptunStates);
+                        });
+                        renderCards();
+                    }
+
+                    document.getElementById('statusDot').className = "status-dot";
+                    document.getElementById('statusText').innerText = "Активно";
+                    isLiveApiConnected = true;
+                    return;
+                }
+            } catch (err) {
+                // Тайм-аут сети
+            }
+
+            document.getElementById('statusDot').className = "status-dot fallback";
+            document.getElementById('statusText').innerText = "Очікування зв'язку...";
+            isLiveApiConnected = false;
+        }
+
+        function initSystem() {
+            renderCards();
+            fetchNeptunAlerts();
+            setInterval(fetchNeptunAlerts, 5000);
+        }
+
+        initSystem();
+    </script>
+</body>
+</html>

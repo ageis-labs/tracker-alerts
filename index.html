@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis Labs — Tracker-Alerts AI v1.1</title>
+    <title>Aegis Labs — Tracker-Alerts AI v2.0 (Neptun Live)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -84,6 +84,7 @@
             background: var(--warning-yellow);
         }
 
+        /* Панель выбора: Область -> Район */
         .control-panel {
             width: 100%;
             max-width: 900px;
@@ -131,9 +132,9 @@
             gap: 18px;
             width: 100%;
             max-width: 900px;
-            margin-bottom: 30px;
         }
 
+        /* Карточка района */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -159,6 +160,7 @@
             border-color: var(--safe-green);
         }
 
+        /* Крестик удаления */
         .delete-btn {
             position: absolute;
             top: 10px;
@@ -230,24 +232,7 @@
             color: var(--text-main);
         }
 
-        footer.app-footer {
-            width: 100%;
-            max-width: 900px;
-            text-align: center;
-            padding: 20px 0;
-            border-top: 1px solid var(--border-color);
-            color: var(--text-sub);
-            font-size: 0.85rem;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        footer.app-footer .credits {
-            color: #38bdf8;
-            font-weight: 500;
-        }
-
+        /* Модальное окно */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -326,14 +311,15 @@
     <header>
         <div class="logo">
             ⚡ Aegis Labs — Tracker AI 
-            <span class="version-tag">v1.1</span>
+            <span class="version-tag">v2.0 Neptun</span>
         </div>
         <div class="status-badge">
             <span class="status-dot fallback" id="statusDot"></span>
-            <span id="statusText">Очікування...</span>
+            <span id="statusText">Підключення до Neptun API...</span>
         </div>
     </header>
 
+    <!-- Иерархический выбор: Область -> Район -->
     <div class="control-panel">
         <select id="regionSelect" onchange="updateDistrictOptions()">
             <option value="">-- Оберіть область --</option>
@@ -351,11 +337,7 @@
 
     <div class="grid-container" id="regionsGrid"></div>
 
-    <footer class="app-footer">
-        <div>© Розробка продукту: <strong>Aegis Labs</strong> (Версія 1.1)</div>
-        <div class="credits">Окрема подяка проєкту Neptun за надання відкритих даних та API!</div>
-    </footer>
-
+    <!-- Модальное окно удаления -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <h3>Видалити район?</h3>
@@ -369,39 +351,13 @@
 
     <script>
         let isLiveApiConnected = false;
-        let latestNeptunRaions = [];
-        let latestNeptunStates = [];
+        let latestNeptunItems = [];
 
-        // Полный список всех районов трех областей
+        // База данных областей и районов для селектора
         const database = {
-            kyiv: [
-                "м. Київ",
-                "Білоцерківський район",
-                "Бориспільський район",
-                "Броварський район",
-                "Бучанський район",
-                "Вишгородський район",
-                "Обухівський район",
-                "Фастівський район"
-            ],
-            odesa: [
-                "Березівський район",
-                "Білгород-Дністровський район",
-                "Болградський район",
-                "Ізмаїльський район",
-                "Одеський район",
-                "Подільський район",
-                "Роздільнянський район"
-            ],
-            lviv: [
-                "Дрогобицький район",
-                "Золочівський район",
-                "Львівський район",
-                "Стрийський район",
-                "Самбірський район",
-                "Червоноградський район",
-                "Яворівський район"
-            ]
+            kyiv: ["м. Київ", "Вишгородський район", "Білоцерківський район", "Броварський район", "Бучанський район"],
+            odesa: ["Одеський район", "Подільський район", "Березівський район", "Білгород-Дністровський район", "Ізмаїльський район"],
+            lviv: ["Львівський район", "Дрогобицький район", "Стрийський район", "Яворівський район", "Червоноградський район"]
         };
 
         let regionsData = [
@@ -438,29 +394,6 @@
             return `Відбій очікується через ~${minutes} хв.`;
         }
 
-        // Двуязычная логика отсечения лишних названий для Киева
-        function isRegionInAlarm(regionName, raionsList, statesList) {
-            if (regionName === "м. Київ") {
-                const kyivItem = statesList.find(s => {
-                    if (!s.name) return false;
-                    const name = s.name.toLowerCase();
-                    const isOblast = name.includes("область") || name.includes("region") || name.includes("oblast");
-                    const isCrimea = name.includes("крим") || name.includes("crimea");
-                    return !isOblast && !isCrimea;
-                });
-                if (kyivItem) {
-                    return kyivItem.enabled === true || kyivItem.alert === true || kyivItem.isAlert === true || kyivItem.enabled === 1;
-                }
-                return false;
-            } else {
-                const found = raionsList.find(r => r.name === regionName);
-                if (found) {
-                    return found.enabled === true || found.alert === true || found.isAlert === true || found.enabled === 1;
-                }
-                return false;
-            }
-        }
-
         function renderCards() {
             const grid = document.getElementById('regionsGrid');
             grid.innerHTML = '';
@@ -492,6 +425,16 @@
             });
         }
 
+        // Универсальная очистка названий для точного сопоставления (область, oblast, крим, crimea, приставки)
+        function cleanName(name) {
+            if (!name) return '';
+            return name
+                .toString()
+                .toLowerCase()
+                .replace(/область|oblast|крим|crimea|м\.|місто|смт|с\./gi, '')
+                .trim();
+        }
+
         function addNewRegion() {
             const districtSelect = document.getElementById('districtSelect');
             const name = districtSelect.value;
@@ -507,7 +450,12 @@
             }
 
             const newId = regionsData.length > 0 ? Math.max(...regionsData.map(r => r.id)) + 1 : 1;
-            let alertStatus = isRegionInAlarm(name, latestNeptunRaions, latestNeptunStates);
+            
+            const cleanNew = cleanName(name);
+            let alertStatus = latestNeptunItems.some(item => {
+                const apiName = cleanName(item.name || item.title || item.region || '');
+                return apiName && (apiName.includes(cleanNew) || cleanNew.includes(apiName));
+            });
 
             regionsData.push({
                 id: newId,
@@ -540,6 +488,7 @@
             }
         };
 
+        // ПОЛУЧЕНИЕ ДАННЫХ ЧЕРЕЗ NEPTUN API (GET, CORS *, каждые 3 секунды)
         async function fetchNeptunAlerts() {
             const targetUrl = "https://neptun.in.ua/api/v1/alerts";
 
@@ -553,34 +502,52 @@
                 if (response.ok) {
                     const data = await response.json();
                     
+                    // Собираем ВСЕ возможные подразделы ответа (raions, oblasts, cities, alerts) в единый пул
+                    let allItems = [];
                     if (data) {
-                        latestNeptunRaions = data.raions || [];
-                        latestNeptunStates = data.states || [];
-                        
-                        regionsData.forEach(region => {
-                            region.isAlert = isRegionInAlarm(region.name, latestNeptunRaions, latestNeptunStates);
-                        });
-                        renderCards();
+                        if (Array.isArray(data)) allItems = data;
+                        if (Array.isArray(data.raions)) allItems = allItems.concat(data.raions);
+                        if (Array.isArray(data.oblasts)) allItems = allItems.concat(data.oblasts);
+                        if (Array.isArray(data.alerts)) allItems = allItems.concat(data.alerts);
+                        if (Array.isArray(data.cities)) allItems = allItems.concat(data.cities);
                     }
+                    
+                    latestNeptunItems = allItems;
+                    
+                    // Обновляем статусы всех карточек с умной очисткой и двусторонней проверкой
+                    regionsData.forEach(region => {
+                        const cleanReg = cleanName(region.name);
+                        
+                        const isAlarmActive = latestNeptunItems.some(item => {
+                            const apiName = cleanName(item.name || item.title || item.region || '');
+                            if (!apiName) return false;
+                            
+                            return apiName.includes(cleanReg) || cleanReg.includes(apiName);
+                        });
+
+                        region.isAlert = isAlarmActive;
+                    });
+                    
+                    renderCards();
 
                     document.getElementById('statusDot').className = "status-dot";
-                    document.getElementById('statusText').innerText = "Активно";
+                    document.getElementById('statusText').innerText = "Live API (Neptun Direct)";
                     isLiveApiConnected = true;
                     return;
                 }
             } catch (err) {
-                // Тайм-аут сети
+                // Тихо перехватываем сетевые паузы
             }
 
             document.getElementById('statusDot').className = "status-dot fallback";
-            document.getElementById('statusText').innerText = "Очікування зв'язку...";
+            document.getElementById('statusText').innerText = "Автономний контур (Aegis v2.0)";
             isLiveApiConnected = false;
         }
 
         function initSystem() {
             renderCards();
             fetchNeptunAlerts();
-            setInterval(fetchNeptunAlerts, 5000);
+            setInterval(fetchNeptunAlerts, 3000);
         }
 
         initSystem();

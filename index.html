@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis Labs — Tracker-Alerts AI v2.0 (Neptun Live)</title>
+    <title>Aegis Labs — Tracker-Alerts AI v1.1 (Neptun Live)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -84,7 +84,6 @@
             background: var(--warning-yellow);
         }
 
-        /* Панель выбора: Область -> Район */
         .control-panel {
             width: 100%;
             max-width: 900px;
@@ -134,7 +133,6 @@
             max-width: 900px;
         }
 
-        /* Карточка района */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -160,7 +158,6 @@
             border-color: var(--safe-green);
         }
 
-        /* Крестик удаления */
         .delete-btn {
             position: absolute;
             top: 10px;
@@ -232,7 +229,6 @@
             color: var(--text-main);
         }
 
-        /* Модальное окно */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -311,7 +307,7 @@
     <header>
         <div class="logo">
             ⚡ Aegis Labs — Tracker AI 
-            <span class="version-tag">v2.0 Neptun</span>
+            <span class="version-tag">v1.1 Neptun</span>
         </div>
         <div class="status-badge">
             <span class="status-dot fallback" id="statusDot"></span>
@@ -319,7 +315,6 @@
         </div>
     </header>
 
-    <!-- Иерархический выбор: Область -> Район -->
     <div class="control-panel">
         <select id="regionSelect" onchange="updateDistrictOptions()">
             <option value="">-- Оберіть область --</option>
@@ -337,7 +332,6 @@
 
     <div class="grid-container" id="regionsGrid"></div>
 
-    <!-- Модальное окно удаления -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <h3>Видалити район?</h3>
@@ -350,10 +344,9 @@
     </div>
 
     <script>
-        let isLiveApiConnected = false;
         let latestNeptunItems = [];
+        let activeController = null;
 
-        // База данных областей и районов для селектора
         const database = {
             kyiv: ["м. Київ", "Вишгородський район", "Білоцерківський район", "Броварський район", "Бучанський район"],
             odesa: ["Одеський район", "Подільський район", "Березівський район", "Білгород-Дністровський район", "Ізмаїльський район"],
@@ -383,17 +376,18 @@
             database[regionKey].forEach(district => {
                 const opt = document.createElement('option');
                 opt.value = district;
-                opt.innerText = district;
+                opt.textContent = district;
                 districtSelect.appendChild(opt);
             });
         }
 
-        function calculateAIPrediction(name, isAlert) {
+        function calculateAIPrediction(isAlert) {
             if (!isAlert) return "Загроза відсутня";
-            let minutes = Math.floor(Math.random() * 15) + 15;
+            const minutes = Math.floor(Math.random() * 15) + 15;
             return `Відбій очікується через ~${minutes} хв.`;
         }
 
+        // Рендер карточек создается один раз или при добавлении/удалении
         function renderCards() {
             const grid = document.getElementById('regionsGrid');
             grid.innerHTML = '';
@@ -401,31 +395,76 @@
             regionsData.forEach(region => {
                 const card = document.createElement('div');
                 card.className = `card ${region.isAlert ? 'active-alert' : 'safe'}`;
+                card.dataset.id = region.id;
                 
                 let riskTagText = "";
                 if (region.name.includes("Київ") || region.name.includes("Одеський") || region.name.includes("Львівський")) {
                     riskTagText = "Стратегічний центр";
                 }
 
-                card.innerHTML = `
-                    <button class="delete-btn" onclick="openDeleteModal(${region.id}, event)" title="Видалити">✕</button>
-                    <div class="card-header">
-                        <h3 class="region-name">${region.name}</h3>
-                        ${riskTagText ? `<span class="region-tag">${riskTagText}</span>` : ''}
-                    </div>
-                    <div class="alert-status">
-                        ${region.isAlert ? '🚨 Повітряна тривога' : '🟢 Безпечно'}
-                    </div>
-                    <div class="ai-prediction">
-                        Прогноз AI: <strong>${calculateAIPrediction(region.name, region.isAlert)}</strong>
-                    </div>
-                `;
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.title = 'Видалити';
+                deleteBtn.textContent = '✕';
+                deleteBtn.onclick = (e) => openDeleteModal(region.id, e);
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'card-header';
+                
+                const titleEl = document.createElement('h3');
+                titleEl.className = 'region-name';
+                titleEl.textContent = region.name;
+                headerDiv.appendChild(titleEl);
+
+                if (riskTagText) {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'region-tag';
+                    tagEl.textContent = riskTagText;
+                    headerDiv.appendChild(tagEl);
+                }
+
+                const statusEl = document.createElement('div');
+                statusEl.className = 'alert-status';
+                statusEl.textContent = region.isAlert ? '🚨 Повітряна тривога' : '🟢 Безпечно';
+
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'ai-prediction';
+                aiDiv.innerHTML = `Прогноз AI: <strong>${calculateAIPrediction(region.isAlert)}</strong>`;
+
+                card.appendChild(deleteBtn);
+                card.appendChild(headerDiv);
+                card.appendChild(statusEl);
+                card.appendChild(aiDiv);
 
                 grid.appendChild(card);
             });
         }
 
-        // Универсальная очистка названий для точного сопоставления (область, oblast, крим, crimea, приставки)
+        // Точечное обновление UI без перерисовки всего дерева DOM
+        function updateCardsUI() {
+            const grid = document.getElementById('regionsGrid');
+            const cards = grid.children;
+
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const id = Number(card.dataset.id);
+                const region = regionsData.find(r => r.id === id);
+                if (!region) continue;
+
+                card.className = `card ${region.isAlert ? 'active-alert' : 'safe'}`;
+                
+                const statusEl = card.querySelector('.alert-status');
+                if (statusEl) {
+                    statusEl.textContent = region.isAlert ? '🚨 Повітряна тривога' : '🟢 Безпечно';
+                }
+
+                const aiStrong = card.querySelector('.ai-prediction strong');
+                if (aiStrong) {
+                    aiStrong.textContent = calculateAIPrediction(region.isAlert);
+                }
+            }
+        }
+
         function cleanName(name) {
             if (!name) return '';
             return name
@@ -452,7 +491,7 @@
             const newId = regionsData.length > 0 ? Math.max(...regionsData.map(r => r.id)) + 1 : 1;
             
             const cleanNew = cleanName(name);
-            let alertStatus = latestNeptunItems.some(item => {
+            const alertStatus = latestNeptunItems.some(item => {
                 const apiName = cleanName(item.name || item.title || item.region || '');
                 return apiName && (apiName.includes(cleanNew) || cleanNew.includes(apiName));
             });
@@ -471,7 +510,7 @@
             regionToDeleteId = id;
             const region = regionsData.find(r => r.id === id);
             
-            document.getElementById('modalText').innerText = `Ви дійсно хочете видалити "${region.name}" зі списку?`;
+            document.getElementById('modalText').textContent = `Ви дійсно хочете видалити "${region.name}" зі списку?`;
             document.getElementById('deleteModal').classList.add('active');
         }
 
@@ -488,21 +527,25 @@
             }
         };
 
-        // ПОЛУЧЕНИЕ ДАННЫХ ЧЕРЕЗ NEPTUN API (GET, CORS *, каждые 3 секунды)
+        // Запрос к Neptun API с контроллером отмены (каждые 10 секунд)
         async function fetchNeptunAlerts() {
+            if (activeController) {
+                activeController.abort();
+            }
+            activeController = new AbortController();
+
             const targetUrl = "https://neptun.in.ua/api/v1/alerts";
 
             try {
                 const response = await fetch(targetUrl, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' },
-                    signal: AbortSignal.timeout(3000)
+                    signal: AbortSignal.any([AbortSignal.timeout(4000), activeController.signal])
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     
-                    // Собираем ВСЕ возможные подразделы ответа (raions, oblasts, cities, alerts) в единый пул
                     let allItems = [];
                     if (data) {
                         if (Array.isArray(data)) allItems = data;
@@ -514,40 +557,33 @@
                     
                     latestNeptunItems = allItems;
                     
-                    // Обновляем статусы всех карточек с умной очисткой и двусторонней проверкой
                     regionsData.forEach(region => {
                         const cleanReg = cleanName(region.name);
-                        
-                        const isAlarmActive = latestNeptunItems.some(item => {
+                        region.isAlert = latestNeptunItems.some(item => {
                             const apiName = cleanName(item.name || item.title || item.region || '');
                             if (!apiName) return false;
-                            
                             return apiName.includes(cleanReg) || cleanReg.includes(apiName);
                         });
-
-                        region.isAlert = isAlarmActive;
                     });
                     
-                    renderCards();
+                    updateCardsUI();
 
                     document.getElementById('statusDot').className = "status-dot";
-                    document.getElementById('statusText').innerText = "Live API (Neptun Direct)";
-                    isLiveApiConnected = true;
+                    document.getElementById('statusText').textContent = "Live API (Neptun Direct)";
                     return;
                 }
             } catch (err) {
-                // Тихо перехватываем сетевые паузы
+                // Обработка таймаутов или отмены запроса в фоне
             }
 
             document.getElementById('statusDot').className = "status-dot fallback";
-            document.getElementById('statusText').innerText = "Автономний контур (Aegis v2.0)";
-            isLiveApiConnected = false;
+            document.getElementById('statusText').textContent = "Автономний контур (Aegis v1.1)";
         }
 
         function initSystem() {
             renderCards();
             fetchNeptunAlerts();
-            setInterval(fetchNeptunAlerts, 3000);
+            setInterval(fetchNeptunAlerts, 10000); // Опрос раз в 10 секунд
         }
 
         initSystem();

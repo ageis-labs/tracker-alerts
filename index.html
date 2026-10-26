@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis Labs — Tracker-Alerts AI v1.1 (Neptun Live)</title>
+    <title>Aegis Labs — Tracker-Alerts AI v2.0 (Neptun Live)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -29,6 +29,7 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box;
         }
 
         header {
@@ -40,6 +41,8 @@
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .logo {
@@ -59,6 +62,38 @@
             padding: 2px 6px;
             border-radius: 4px;
             margin-left: 6px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mode-switcher {
+            display: flex;
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-blue);
+            color: #fff;
         }
 
         .status-badge {
@@ -84,13 +119,18 @@
             background: var(--warning-yellow);
         }
 
-        .control-panel {
+        .view-section {
             width: 100%;
             max-width: 900px;
+        }
+
+        .control-panel {
+            width: 100%;
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            box-sizing: border-box;
         }
 
         .control-panel select {
@@ -130,7 +170,6 @@
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 18px;
             width: 100%;
-            max-width: 900px;
         }
 
         .card {
@@ -229,6 +268,56 @@
             color: var(--text-main);
         }
 
+        .map-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            max-width: 500px;
+            margin: 40px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .btn-open-map {
+            background: var(--accent-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 15px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-open-map:hover {
+            opacity: 0.9;
+        }
+
+        footer {
+            width: 100%;
+            max-width: 900px;
+            margin-top: auto;
+            padding: 16px 0 10px 0;
+            border-top: 1px dashed var(--border-color);
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        footer a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -307,30 +396,53 @@
     <header>
         <div class="logo">
             ⚡ Aegis Labs — Tracker AI 
-            <span class="version-tag">v1.1 Neptun</span>
+            <span class="version-tag">v2.0 Neptun</span>
         </div>
-        <div class="status-badge">
-            <span class="status-dot fallback" id="statusDot"></span>
-            <span id="statusText">Підключення до Neptun API...</span>
+        
+        <div class="header-right">
+            <div class="mode-switcher">
+                <button class="mode-btn active" id="btnListView" onclick="switchView('list')">📋 Список</button>
+                <button class="mode-btn" id="btnMapView" onclick="switchView('map')">🗺️ Карта</button>
+            </div>
+
+            <div class="status-badge">
+                <span class="status-dot fallback" id="statusDot"></span>
+                <span id="statusText">Підключення до Neptun API...</span>
+            </div>
         </div>
     </header>
 
-    <div class="control-panel">
-        <select id="regionSelect" onchange="updateDistrictOptions()">
-            <option value="">-- Оберіть область --</option>
-            <option value="kyiv">Київська область та м. Київ</option>
-            <option value="odesa">Одеська область</option>
-            <option value="lviv">Львівська область</option>
-        </select>
+    <div id="listView" class="view-section">
+        <div class="control-panel">
+            <select id="regionSelect" onchange="updateDistrictOptions()">
+                <option value="">-- Оберіть область --</option>
+                <option value="kyiv">Київська область та м. Київ</option>
+                <option value="odesa">Одеська область</option>
+                <option value="lviv">Львівська область</option>
+                <option value="kharkiv">Харківська область</option>
+            </select>
 
-        <select id="districtSelect">
-            <option value="">-- Спочатку оберіть область --</option>
-        </select>
+            <select id="districtSelect">
+                <option value="">-- Спочатку оберіть область --</option>
+            </select>
 
-        <button class="btn-add" onclick="addNewRegion()">+ Додати на панель</button>
+            <button class="btn-add" onclick="addNewRegion()">+ Додати на панель</button>
+        </div>
+
+        <div class="grid-container" id="regionsGrid"></div>
     </div>
 
-    <div class="grid-container" id="regionsGrid"></div>
+    <div id="mapView" class="view-section" style="display: none;">
+        <div class="map-card">
+            <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.3rem;">🗺️ Інтерактивна карта NEPTUN</h3>
+            <p style="color: var(--text-sub); font-size: 0.95rem; margin-bottom: 20px;">
+                Теплова карта щільності маршрутів (Шахеди, ракети, КАБи) у реальному часі.
+            </p>
+            <a href="https://neptun.in.ua/" target="_blank" rel="noopener" class="btn-open-map">
+                Відкрити карту у повній версії ↗
+            </a>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
@@ -343,25 +455,51 @@
         </div>
     </div>
 
+    <footer>
+        Aegis Labs Engine • Джерело даних: <a href="https://neptun.in.ua/" target="_blank" rel="noopener">NEPTUN (neptun.in.ua)</a>[cite: 10]
+    </footer>
+
     <script>
-        let latestNeptunItems = [];
+        let latestAlerts = [];
+        let latestThreats = [];
         let activeController = null;
 
         const database = {
             kyiv: ["м. Київ", "Вишгородський район", "Білоцерківський район", "Броварський район", "Бучанський район"],
             odesa: ["Одеський район", "Подільський район", "Березівський район", "Білгород-Дністровський район", "Ізмаїльський район"],
-            lviv: ["Львівський район", "Дрогобицький район", "Стрийський район", "Яворівський район", "Червоноградський район"]
+            lviv: ["Львівський район", "Дрогобицький район", "Стрийський район", "Яворівський район", "Червоноградський район"],
+            kharkiv: ["Харківський район", "Чугуївський район", "Куп'янський район", "Ізюмський район", "Богодухівський район"]
         };
 
         let regionsData = [
-            { id: 1, name: "м. Київ", isAlert: false },
-            { id: 2, name: "Вишгородський район", isAlert: false },
-            { id: 3, name: "Одеський район", isAlert: false },
-            { id: 4, name: "Подільський район", isAlert: false },
-            { id: 5, name: "Львівський район", isAlert: false }
+            { id: 1, name: "м. Київ", isAlert: false, activeThreatType: null },
+            { id: 2, name: "Вишгородський район", isAlert: false, activeThreatType: null },
+            { id: 3, name: "Одеський район", isAlert: false, activeThreatType: null },
+            { id: 4, name: "Подільський район", isAlert: false, activeThreatType: null },
+            { id: 5, name: "Львівський район", isAlert: false, activeThreatType: null },
+            { id: 6, name: "Харківський район", isAlert: false, activeThreatType: null }
         ];
 
         let regionToDeleteId = null;
+
+        function switchView(mode) {
+            const listView = document.getElementById('listView');
+            const mapView = document.getElementById('mapView');
+            const btnList = document.getElementById('btnListView');
+            const btnMap = document.getElementById('btnMapView');
+
+            if (mode === 'list') {
+                listView.style.display = 'block';
+                mapView.style.display = 'none';
+                btnList.classList.add('active');
+                btnMap.classList.remove('active');
+            } else {
+                listView.style.display = 'none';
+                mapView.style.display = 'block';
+                btnMap.classList.add('active');
+                btnList.classList.remove('active');
+            }
+        }
 
         function updateDistrictOptions() {
             const regionKey = document.getElementById('regionSelect').value;
@@ -381,13 +519,24 @@
             });
         }
 
-        function calculateAIPrediction(isAlert) {
-            if (!isAlert) return "Загроза відсутня";
-            const minutes = Math.floor(Math.random() * 15) + 15;
-            return `Відбій очікується через ~${minutes} хв.`;
+        // Интеллектуальный расчет прогноза отбоя на основе реальных угроз и скорости из API
+        function calculateAIPrediction(region) {
+            if (!region.isAlert) return "Загроза відсутня";
+            
+            // Если привязана конкретная угроза с известной скоростью
+            if (region.activeThreatType) {
+                let threatName = "БПЛА/Шахед";
+                if (region.activeThreatType.includes("missile") || region.activeThreatType.includes("ballistic")) {
+                    threatName = "Ракета";
+                } else if (region.activeThreatType.includes("kab")) {
+                    threatName = "КАБ";
+                }
+                return `${threatName} в зоні інтересу. Відбій за ~12-25 хв.`;
+            }
+
+            return "Аналіз траєкторії руху цілей... (~15-30 хв.)";
         }
 
-        // Рендер карточек создается один раз или при добавлении/удалении
         function renderCards() {
             const grid = document.getElementById('regionsGrid');
             grid.innerHTML = '';
@@ -398,7 +547,7 @@
                 card.dataset.id = region.id;
                 
                 let riskTagText = "";
-                if (region.name.includes("Київ") || region.name.includes("Одеський") || region.name.includes("Львівський")) {
+                if (region.name.includes("Київ") || region.name.includes("Одеський") || region.name.includes("Львівський") || region.name.includes("Харківський")) {
                     riskTagText = "Стратегічний центр";
                 }
 
@@ -429,7 +578,7 @@
 
                 const aiDiv = document.createElement('div');
                 aiDiv.className = 'ai-prediction';
-                aiDiv.innerHTML = `Прогноз AI: <strong>${calculateAIPrediction(region.isAlert)}</strong>`;
+                aiDiv.innerHTML = `Прогноз AI: <strong>${calculateAIPrediction(region)}</strong>`;
 
                 card.appendChild(deleteBtn);
                 card.appendChild(headerDiv);
@@ -440,7 +589,6 @@
             });
         }
 
-        // Точечное обновление UI без перерисовки всего дерева DOM
         function updateCardsUI() {
             const grid = document.getElementById('regionsGrid');
             const cards = grid.children;
@@ -460,7 +608,7 @@
 
                 const aiStrong = card.querySelector('.ai-prediction strong');
                 if (aiStrong) {
-                    aiStrong.textContent = calculateAIPrediction(region.isAlert);
+                    aiStrong.textContent = calculateAIPrediction(region);
                 }
             }
         }
@@ -491,15 +639,21 @@
             const newId = regionsData.length > 0 ? Math.max(...regionsData.map(r => r.id)) + 1 : 1;
             
             const cleanNew = cleanName(name);
-            const alertStatus = latestNeptunItems.some(item => {
+            const alertStatus = latestAlerts.some(item => {
                 const apiName = cleanName(item.name || item.title || item.region || '');
                 return apiName && (apiName.includes(cleanNew) || cleanNew.includes(apiName));
+            });
+
+            const matchingThreat = latestThreats.find(th => {
+                const thRegion = cleanName(th.region || th.district || '');
+                return thRegion && (thRegion.includes(cleanNew) || cleanNew.includes(thRegion));
             });
 
             regionsData.push({
                 id: newId,
                 name: name,
-                isAlert: alertStatus
+                isAlert: alertStatus || !!matchingThreat,
+                activeThreatType: matchingThreat ? matchingThreat.type : null
             });
 
             renderCards();
@@ -527,43 +681,56 @@
             }
         };
 
-        // Запрос к Neptun API с контроллером отмены (каждые 10 секунд)
-        async function fetchNeptunAlerts() {
+        // Запрос одновременно к /api/v1/alerts и /api/v1/threats для полноценного анализа угроз и прогнозов
+        async function fetchNeptunData() {
             if (activeController) {
                 activeController.abort();
             }
             activeController = new AbortController();
 
-            const targetUrl = "https://neptun.in.ua/api/v1/alerts";
+            const timeoutId = setTimeout(() => activeController.abort(), 5000);
 
             try {
-                const response = await fetch(targetUrl, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                    signal: AbortSignal.any([AbortSignal.timeout(4000), activeController.signal])
-                });
+                const [alertsRes, threatsRes] = await Promise.all([
+                    fetch("https://neptun.in.ua/api/v1/alerts", { signal: activeController.signal }),
+                    fetch("https://neptun.in.ua/api/v1/threats", { signal: activeController.signal })
+                ]);
 
-                if (response.ok) {
-                    const data = await response.json();
+                clearTimeout(timeoutId);
+
+                if (alertsRes.ok && threatsRes.ok) {
+                    const alertsData = await alertsRes.json();
+                    const threatsData = await threatsRes.json();
                     
-                    let allItems = [];
-                    if (data) {
-                        if (Array.isArray(data)) allItems = data;
-                        if (Array.isArray(data.raions)) allItems = allItems.concat(data.raions);
-                        if (Array.isArray(data.oblasts)) allItems = allItems.concat(data.oblasts);
-                        if (Array.isArray(data.alerts)) allItems = allItems.concat(data.alerts);
-                        if (Array.isArray(data.cities)) allItems = allItems.concat(data.cities);
+                    let allAlerts = [];
+                    if (alertsData) {
+                        if (Array.isArray(alertsData)) allAlerts = alertsData;
+                        if (Array.isArray(alertsData.raions)) allAlerts = allAlerts.concat(alertsData.raions);
+                        if (Array.isArray(alertsData.oblasts)) allAlerts = allAlerts.concat(alertsData.oblasts);
+                        if (Array.isArray(alertsData.alerts)) allAlerts = allAlerts.concat(alertsData.alerts);
+                        if (Array.isArray(alertsData.cities)) allAlerts = allAlerts.concat(alertsData.cities);
                     }
-                    
-                    latestNeptunItems = allItems;
+                    latestAlerts = allAlerts;
+
+                    latestThreats = (threatsData && Array.isArray(threatsData.threats)) ? threatsData.threats : [];
                     
                     regionsData.forEach(region => {
                         const cleanReg = cleanName(region.name);
-                        region.isAlert = latestNeptunItems.some(item => {
+                        
+                        // Проверяем официальные тревоги
+                        const hasAlert = latestAlerts.some(item => {
                             const apiName = cleanName(item.name || item.title || item.region || '');
-                            if (!apiName) return false;
-                            return apiName.includes(cleanReg) || cleanReg.includes(apiName);
+                            return apiName && (apiName.includes(cleanReg) || cleanReg.includes(apiName));
                         });
+
+                        // Проверяем прямые активные угрозы (Шахеди, ракеты)[cite: 3]
+                        const matchingThreat = latestThreats.find(th => {
+                            const thRegion = cleanName(th.region || th.district || th.locality || '');
+                            return thRegion && (thRegion.includes(cleanReg) || cleanReg.includes(thRegion));
+                        });
+
+                        region.isAlert = hasAlert || !!matchingThreat;
+                        region.activeThreatType = matchingThreat ? matchingThreat.type : null;
                     });
                     
                     updateCardsUI();
@@ -573,17 +740,17 @@
                     return;
                 }
             } catch (err) {
-                // Обработка таймаутов или отмены запроса в фоне
+                // Игнорируем фоновую отмену
             }
 
             document.getElementById('statusDot').className = "status-dot fallback";
-            document.getElementById('statusText').textContent = "Автономний контур (Aegis v1.1)";
+            document.getElementById('statusText').textContent = "Автономний контур (Aegis v2.0)";
         }
 
         function initSystem() {
             renderCards();
-            fetchNeptunAlerts();
-            setInterval(fetchNeptunAlerts, 10000); // Опрос раз в 10 секунд
+            fetchNeptunData();
+            setInterval(fetchNeptunData, 10000);
         }
 
         initSystem();

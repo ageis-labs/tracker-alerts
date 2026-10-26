@@ -272,23 +272,24 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 40px 20px;
+            padding: 20px;
             text-align: center;
-            max-width: 500px;
-            margin: 40px auto;
+            width: 100%;
+            box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .btn-open-map {
             background: var(--accent-blue);
             color: white;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
             display: inline-block;
             margin-top: 15px;
             transition: opacity 0.2s;
+            font-size: 0.9rem;
         }
 
         .btn-open-map:hover {
@@ -432,15 +433,24 @@
         <div class="grid-container" id="regionsGrid"></div>
     </div>
 
+    <!-- Интерактивная карта (Embed-виджет Neptun) -->
     <div id="mapView" class="view-section" style="display: none;">
         <div class="map-card">
-            <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.3rem;">🗺️ Інтерактивна карта NEPTUN</h3>
-            <p style="color: var(--text-sub); font-size: 0.95rem; margin-bottom: 20px;">
-                Теплова карта щільності маршрутів (Шахеди, ракети, КАБи) у реальному часі.
+            <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.2rem;">🗺️ Інтерактивна карта NEPTUN</h3>
+            <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 15px;">
+                Моніторинг повітряного простору у реальному часі.
             </p>
-            <a href="https://neptun.in.ua/" target="_blank" rel="noopener" class="btn-open-map">
-                Відкрити карту у повній версії ↗
-            </a>
+            <iframe 
+                src="https://neptun.in.ua/embed/map" 
+                style="width:100%; height:550px; border:0; border-radius:12px; background: #0b1329;" 
+                title="Карта повітряних тривог України – NEPTUN" 
+                loading="lazy">
+            </iframe>
+            <div style="margin-top: 15px;">
+                <a href="https://neptun.in.ua/embed/map" target="_blank" rel="noopener" class="btn-open-map">
+                    Відкрити чисту карту на весь екран ↗
+                </a>
+            </div>
         </div>
     </div>
 
@@ -456,7 +466,7 @@
     </div>
 
     <footer>
-        Aegis Labs Engine • Джерело даних: <a href="https://neptun.in.ua/" target="_blank" rel="noopener">NEPTUN (neptun.in.ua)</a>
+        Aegis Labs Engine • Джерело даних: <a href="https://neptun.in.ua/" target="_blank" rel="noopener">NEPTUN (neptun.in.ua)</a>[cite: 1]
     </footer>
 
     <script>
@@ -516,19 +526,20 @@
         }
 
         function calculateAIPrediction(region) {
-            if (!region.isAlert) return "Загроза відсутня";
+            if (!region.isAlert && !region.activeThreatType) return "Загроза відсутня";
             
             if (region.activeThreatType) {
                 let threatName = "БПЛА/Шахед";
-                if (region.activeThreatType.includes("missile") || region.activeThreatType.includes("ballistic")) {
+                let lowerType = region.activeThreatType.toLowerCase();
+                if (lowerType.includes("missile") || lowerType.includes("ballistic")) {
                     threatName = "Ракета";
-                } else if (region.activeThreatType.includes("kab")) {
+                } else if (lowerType.includes("kab")) {
                     threatName = "КАБ";
                 }
                 return `${threatName} в зоні інтересу. Відбій за ~12-25 хв.`;
             }
 
-            return "Аналіз траєкторії руху цілей... (~15-30 хв.)";
+            return "Сигнал тривоги активний. Очікування відбою...";
         }
 
         function renderCards() {
@@ -647,7 +658,7 @@
             regionsData.push({
                 id: newId,
                 name: name,
-                isAlert: alertStatus || !!matchingThreat,
+                isAlert: alertStatus,
                 activeThreatType: matchingThreat ? matchingThreat.type : null
             });
 
@@ -721,7 +732,7 @@
                             return thRegion && (thRegion.includes(cleanReg) || cleanReg.includes(thRegion));
                         });
 
-                        region.isAlert = hasAlert || !!matchingThreat;
+                        region.isAlert = hasAlert;
                         region.activeThreatType = matchingThreat ? matchingThreat.type : null;
                     });
                     
@@ -732,7 +743,7 @@
                     return;
                 }
             } catch (err) {
-                // Игнорируем отмену
+                // Игнорируем отмену запроса
             }
 
             document.getElementById('statusDot').className = "status-dot fallback";
@@ -742,7 +753,7 @@
         function initSystem() {
             renderCards();
             fetchNeptunData();
-            setInterval(fetchNeptunData, 5000); // Опрос раз в 5 секунд, версия v2.0 сохранена
+            setInterval(fetchNeptunData, 5000);
         }
 
         initSystem();

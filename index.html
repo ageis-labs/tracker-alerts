@@ -456,7 +456,7 @@
     </div>
 
     <footer>
-        Aegis Labs Engine • Джерело даних: <a href="https://neptun.in.ua/" target="_blank" rel="noopener">NEPTUN (neptun.in.ua)</a>[cite: 10]
+        Aegis Labs Engine • Джерело даних: <a href="https://neptun.in.ua/" target="_blank" rel="noopener">NEPTUN (neptun.in.ua)</a>
     </footer>
 
     <script>
@@ -473,11 +473,7 @@
 
         let regionsData = [
             { id: 1, name: "м. Київ", isAlert: false, activeThreatType: null },
-            { id: 2, name: "Вишгородський район", isAlert: false, activeThreatType: null },
-            { id: 3, name: "Одеський район", isAlert: false, activeThreatType: null },
-            { id: 4, name: "Подільський район", isAlert: false, activeThreatType: null },
-            { id: 5, name: "Львівський район", isAlert: false, activeThreatType: null },
-            { id: 6, name: "Харківський район", isAlert: false, activeThreatType: null }
+            { id: 2, name: "Одеський район", isAlert: false, activeThreatType: null }
         ];
 
         let regionToDeleteId = null;
@@ -519,11 +515,9 @@
             });
         }
 
-        // Интеллектуальный расчет прогноза отбоя на основе реальных угроз и скорости из API
         function calculateAIPrediction(region) {
             if (!region.isAlert) return "Загроза відсутня";
             
-            // Если привязана конкретная угроза с известной скоростью
             if (region.activeThreatType) {
                 let threatName = "БПЛА/Шахед";
                 if (region.activeThreatType.includes("missile") || region.activeThreatType.includes("ballistic")) {
@@ -547,7 +541,7 @@
                 card.dataset.id = region.id;
                 
                 let riskTagText = "";
-                if (region.name.includes("Київ") || region.name.includes("Одеський") || region.name.includes("Львівський") || region.name.includes("Харківський")) {
+                if (region.name.includes("Київ") || region.name.includes("Одеський")) {
                     riskTagText = "Стратегічний центр";
                 }
 
@@ -618,7 +612,8 @@
             return name
                 .toString()
                 .toLowerCase()
-                .replace(/область|oblast|крим|crimea|м\.|місто|смт|с\./gi, '')
+                .replace(/['`’ʼ]/g, '') 
+                .replace(/область|oblast|крим|crimea|район|raion|м\.|місто|смт|с\./gi, '')
                 .trim();
         }
 
@@ -681,14 +676,13 @@
             }
         };
 
-        // Запрос одновременно к /api/v1/alerts и /api/v1/threats для полноценного анализа угроз и прогнозов
         async function fetchNeptunData() {
             if (activeController) {
                 activeController.abort();
             }
             activeController = new AbortController();
 
-            const timeoutId = setTimeout(() => activeController.abort(), 5000);
+            const timeoutId = setTimeout(() => activeController.abort(), 4000);
 
             try {
                 const [alertsRes, threatsRes] = await Promise.all([
@@ -717,13 +711,11 @@
                     regionsData.forEach(region => {
                         const cleanReg = cleanName(region.name);
                         
-                        // Проверяем официальные тревоги
                         const hasAlert = latestAlerts.some(item => {
                             const apiName = cleanName(item.name || item.title || item.region || '');
                             return apiName && (apiName.includes(cleanReg) || cleanReg.includes(apiName));
                         });
 
-                        // Проверяем прямые активные угрозы (Шахеди, ракеты)[cite: 3]
                         const matchingThreat = latestThreats.find(th => {
                             const thRegion = cleanName(th.region || th.district || th.locality || '');
                             return thRegion && (thRegion.includes(cleanReg) || cleanReg.includes(thRegion));
@@ -740,7 +732,7 @@
                     return;
                 }
             } catch (err) {
-                // Игнорируем фоновую отмену
+                // Игнорируем отмену
             }
 
             document.getElementById('statusDot').className = "status-dot fallback";
@@ -750,7 +742,7 @@
         function initSystem() {
             renderCards();
             fetchNeptunData();
-            setInterval(fetchNeptunData, 10000);
+            setInterval(fetchNeptunData, 5000); // Опрос раз в 5 секунд, версия v2.0 сохранена
         }
 
         initSystem();
